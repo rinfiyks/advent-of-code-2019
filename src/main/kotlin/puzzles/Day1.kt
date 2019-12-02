@@ -1,6 +1,8 @@
 package puzzles
 
-class Day1(private val input: List<Int>) {
+class Day1(rawInput: List<String>) {
+
+    private val input: List<Int> = rawInput.map { it.toInt() }
 
     fun part1(): Int {
         return input.map { it / 3 - 2 }.sum()
@@ -19,7 +21,7 @@ class Day1(private val input: List<Int>) {
 }
 
 fun main() {
-    val day1 = Day1(Resources.input(1).map { it.toInt() })
+    val day1 = Day1(Resources.input(1))
     println(day1.part1())
     println(day1.part2())
 }
