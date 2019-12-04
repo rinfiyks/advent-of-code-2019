@@ -10,7 +10,6 @@ class Day4(rawInput: List<String>) {
     fun part1(): Int =
         intRange.filter { part1Criteria(it) }.size
 
-
     fun part2(): Int =
         intRange.filter { part2Criteria(it) }.size
 
