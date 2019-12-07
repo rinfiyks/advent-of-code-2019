@@ -6,11 +6,15 @@ class Day5(rawInput: List<String>) {
         rawInput.first().split(",").map { it.toInt() }
 
     fun part1(): Int {
-        return IntcodeComputer.runProgram(input, 1).output.last()
+        return IntcodeComputer.runProgram(
+            IntcodeComputer.State(input, listOf(1))
+        ).output.last()
     }
 
     fun part2(): Int {
-        return IntcodeComputer.runProgram(input, 5).output.last()
+        return IntcodeComputer.runProgram(
+            IntcodeComputer.State(input, listOf(5))
+        ).output.last()
     }
 
 }

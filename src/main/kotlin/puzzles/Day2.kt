@@ -6,13 +6,17 @@ class Day2(rawInput: List<String>) {
         rawInput.first().split(",").map { it.toInt() }
 
     fun part1(): Int {
-        return IntcodeComputer.runProgram(input.updated(1, 12).updated(2, 2)).program[0]
+        return IntcodeComputer.runProgram(
+            IntcodeComputer.State(input.updated(1, 12).updated(2, 2))
+        ).program[0]
     }
 
     fun part2(): Int {
         for (i in 0..99) {
             for (j in 0..99) {
-                val result = IntcodeComputer.runProgram(input.updated(1, i).updated(2, j)).program
+                val result = IntcodeComputer.runProgram(
+                    IntcodeComputer.State(input.updated(1, i).updated(2, j))
+                ).program
                 if (result[0] == 19690720) return 100 * result[1] + result[2]
             }
         }
