@@ -32,7 +32,7 @@ object IntcodeComputer {
             else -> Instruction.Halt
         }.execute(state)
 
-        return when(nextState.status) {
+        return when (nextState.status) {
             Status.RUNNING -> runProgram(nextState)
             else -> nextState
         }
