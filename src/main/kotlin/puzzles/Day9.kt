@@ -1,7 +1,5 @@
 package puzzles
 
-import kotlin.system.measureNanoTime
-
 class Day9(rawInput: List<String>) {
 
     private val input: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
