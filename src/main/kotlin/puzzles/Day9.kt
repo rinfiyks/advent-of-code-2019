@@ -19,6 +19,5 @@ class Day9(rawInput: List<String>) {
 fun main() {
     val day9 = Day9(Resources.input(9))
     println(day9.part1())
-    val time = measureNanoTime { println(day9.part2()) }
-    println("$time ns (${time / 1000000} ms)")
+    println(day9.part2())
 }
