@@ -1,9 +1,15 @@
 package puzzles
 
+import java.lang.IllegalArgumentException
+
 object IntcodeComputer {
 
     enum class Status {
         RUNNING, PAUSED, HALTED
+    }
+
+    enum class ParameterMode {
+        POSITION, IMMEDIATE, RELATIVE
     }
 
     data class State(
@@ -11,27 +17,40 @@ object IntcodeComputer {
         val input: List<Int> = listOf(0),
         val pointer: Int = 0,
         val output: List<Int> = emptyList(),
+        val relativeBase: Int = 0,
         val status: Status = Status.RUNNING
     ) {
         private val instructionCode = program[pointer].toString()
-        val modes = instructionCode.dropLast(2).takeLast(2).padStart(2, '0')
+        private val modes = instructionCode.dropLast(2).takeLast(2).padStart(2, '0').reversed()
+
+        fun parseMode(index: Int): ParameterMode = when (modes[index]) {
+            '0' -> ParameterMode.POSITION
+            '1' -> ParameterMode.IMMEDIATE
+            '2' -> ParameterMode.RELATIVE
+            else -> throw IllegalArgumentException("Unknown mode ${modes[index]}")
+        }
     }
 
     tailrec fun runProgram(state: State): State {
+        println(state)
         val instructionCode = state.program[state.pointer].toString()
-        val opcode = instructionCode.takeLast(1)
+        val opcode = instructionCode.takeLast(2).padStart(2, '0')
         val nextState = when (opcode) {
-            "1" -> Instruction.Add
-            "2" -> Instruction.Times
-            "3" -> Instruction.Update
-            "4" -> Instruction.Output
-            "5" -> Instruction.JumpIfTrue
-            "6" -> Instruction.JumpIfFalse
-            "7" -> Instruction.LessThan
-            "8" -> Instruction.Equals
-            else -> Instruction.Halt
+            "01" -> Instruction.Add
+            "02" -> Instruction.Times
+            "03" -> Instruction.Update
+            "04" -> Instruction.Output
+            "05" -> Instruction.JumpIfTrue
+            "06" -> Instruction.JumpIfFalse
+            "07" -> Instruction.LessThan
+            "08" -> Instruction.Equals
+            "09" -> Instruction.AdjustRelativeBase
+            "99" -> Instruction.Halt
+            else -> throw IllegalArgumentException("Unknown opcode $opcode")
         }.execute(state)
 
+        println(nextState)
+        println()
         return when (nextState.status) {
             Status.RUNNING -> runProgram(nextState)
             else -> nextState
@@ -43,14 +62,14 @@ object IntcodeComputer {
 
         object Add : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram = applyOpcode(state.program, state.pointer, state.modes, Int::plus)
+                val updatedProgram = applyOpcode(state, Int::plus)
                 return state.copy(program = updatedProgram, pointer = state.pointer + 4)
             }
         }
 
         object Times : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram = applyOpcode(state.program, state.pointer, state.modes, Int::times)
+                val updatedProgram = applyOpcode(state, Int::times)
                 return state.copy(program = updatedProgram, pointer = state.pointer + 4)
             }
         }
@@ -67,21 +86,21 @@ object IntcodeComputer {
 
         object Output : Instruction() {
             override fun execute(state: State): State {
-                val nextOutput = getValue(state.program, state.pointer + 1, state.modes[1] == '0')
+                val nextOutput = getValue(state.program, state.pointer + 1, state.parseMode(0))
                 return state.copy(pointer = state.pointer + 2, output = state.output + nextOutput)
             }
         }
 
         object JumpIfTrue : Instruction() {
             override fun execute(state: State): State {
-                val nextPointer = applyJumpOpcode(state.program, state.pointer, state.modes, true)
+                val nextPointer = applyJumpOpcode(state, true)
                 return state.copy(pointer = nextPointer)
             }
         }
 
         object JumpIfFalse : Instruction() {
             override fun execute(state: State): State {
-                val nextPointer = applyJumpOpcode(state.program, state.pointer, state.modes, false)
+                val nextPointer = applyJumpOpcode(state, false)
                 return state.copy(pointer = nextPointer)
             }
         }
@@ -89,7 +108,7 @@ object IntcodeComputer {
         object LessThan : Instruction() {
             override fun execute(state: State): State {
                 val updatedProgram =
-                    applyOpcode(state.program, state.pointer, state.modes) { x, y -> if (x < y) 1 else 0 }
+                    applyOpcode(state) { x, y -> if (x < y) 1 else 0 }
                 return state.copy(program = updatedProgram, pointer = state.pointer + 4)
             }
         }
@@ -97,8 +116,15 @@ object IntcodeComputer {
         object Equals : Instruction() {
             override fun execute(state: State): State {
                 val updatedProgram =
-                    applyOpcode(state.program, state.pointer, state.modes) { x, y -> if (x == y) 1 else 0 }
+                    applyOpcode(state) { x, y -> if (x == y) 1 else 0 }
                 return state.copy(program = updatedProgram, pointer = state.pointer + 4)
+            }
+        }
+
+        object AdjustRelativeBase : Instruction() {
+            override fun execute(state: State): State {
+                val relativeBaseOffset = getValue(state.program, state.pointer + 1, state.parseMode(0))
+                return state.copy(pointer = state.pointer + 2, relativeBase = state.relativeBase + relativeBaseOffset)
             }
         }
 
@@ -109,20 +135,23 @@ object IntcodeComputer {
         }
     }
 
-    private fun applyOpcode(program: List<Int>, index: Int, modes: String, op: (Int, Int) -> Int): List<Int> {
-        val x = getValue(program, index + 1, modes[1] == '0')
-        val y = getValue(program, index + 2, modes[0] == '0')
-        return program.updated(program[index + 3], op(x, y))
+    private fun applyOpcode(state: State, op: (Int, Int) -> Int): List<Int> {
+        val x = getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
+        val y = getValue(state.program, state.pointer + 2, state.parseMode(1), state.relativeBase)
+        return state.program.updated(state.program[state.pointer + 3], op(x, y))
     }
 
-    private fun applyJumpOpcode(program: List<Int>, index: Int, modes: String, ifTrue: Boolean): Int {
-        val x = getValue(program, index + 1, modes[1] == '0')
-        val y = getValue(program, index + 2, modes[0] == '0')
-        return if ((ifTrue && x != 0) || (!ifTrue && x == 0)) y else index + 3
+    private fun applyJumpOpcode(state: State, ifTrue: Boolean): Int {
+        val x = getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
+        val y = getValue(state.program, state.pointer + 2, state.parseMode(1), state.relativeBase)
+        return if ((ifTrue && x != 0) || (!ifTrue && x == 0)) y else state.pointer + 3
     }
 
-    private fun getValue(program: List<Int>, index: Int, parameterMode: Boolean): Int =
-        if (parameterMode) program[program[index]]
-        else program[index]
+    private fun getValue(program: List<Int>, index: Int, parameterMode: ParameterMode, relativeBase: Int = 0): Int =
+        when (parameterMode) {
+            ParameterMode.POSITION -> program[program[index]]
+            ParameterMode.IMMEDIATE -> program[index]
+            ParameterMode.RELATIVE -> program[relativeBase + program[index]]
+        }
 
 }
