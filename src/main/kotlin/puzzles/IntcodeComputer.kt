@@ -13,15 +13,15 @@ object IntcodeComputer {
     }
 
     data class State(
-        val program: List<Int>,
-        val input: List<Int> = listOf(0),
-        val pointer: Int = 0,
-        val output: List<Int> = emptyList(),
-        val relativeBase: Int = 0,
+        val program: Map<Long, Long>,
+        val input: List<Long> = listOf(0),
+        val pointer: Long = 0,
+        val output: List<Long> = emptyList(),
+        val relativeBase: Long = 0,
         val status: Status = Status.RUNNING
     ) {
         private val instructionCode = program[pointer].toString()
-        private val modes = instructionCode.dropLast(2).takeLast(2).padStart(2, '0').reversed()
+        private val modes = instructionCode.dropLast(2).takeLast(3).padStart(3, '0').reversed()
 
         fun parseMode(index: Int): ParameterMode = when (modes[index]) {
             '0' -> ParameterMode.POSITION
@@ -31,8 +31,11 @@ object IntcodeComputer {
         }
     }
 
+    fun parseInput(input: List<String>): Map<Long, Long> =
+        input.first().split(",").map { it.toLong() }
+            .withIndex().map { it.index.toLong() to it.value }.toMap()
+
     tailrec fun runProgram(state: State): State {
-        println(state)
         val instructionCode = state.program[state.pointer].toString()
         val opcode = instructionCode.takeLast(2).padStart(2, '0')
         val nextState = when (opcode) {
@@ -49,8 +52,6 @@ object IntcodeComputer {
             else -> throw IllegalArgumentException("Unknown opcode $opcode")
         }.execute(state)
 
-        println(nextState)
-        println()
         return when (nextState.status) {
             Status.RUNNING -> runProgram(nextState)
             else -> nextState
@@ -62,14 +63,14 @@ object IntcodeComputer {
 
         object Add : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram = applyOpcode(state, Int::plus)
+                val updatedProgram = applyOpcode(state, Long::plus)
                 return state.copy(program = updatedProgram, pointer = state.pointer + 4)
             }
         }
 
         object Times : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram = applyOpcode(state, Int::times)
+                val updatedProgram = applyOpcode(state, Long::times)
                 return state.copy(program = updatedProgram, pointer = state.pointer + 4)
             }
         }
@@ -78,7 +79,13 @@ object IntcodeComputer {
             override fun execute(state: State): State {
                 return if (state.input.isEmpty()) state.copy(status = Status.PAUSED)
                 else {
-                    val updatedProgram = state.program.updated(state.program[state.pointer + 1], state.input[0])
+                    val writeAddress = getWriteAddress(
+                        state.program,
+                        state.pointer + 1,
+                        state.parseMode(0),
+                        state.relativeBase
+                    )
+                    val updatedProgram = state.program.updated(writeAddress, state.input[0])
                     state.copy(program = updatedProgram, input = state.input.drop(1), pointer = state.pointer + 2)
                 }
             }
@@ -86,7 +93,7 @@ object IntcodeComputer {
 
         object Output : Instruction() {
             override fun execute(state: State): State {
-                val nextOutput = getValue(state.program, state.pointer + 1, state.parseMode(0))
+                val nextOutput = getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
                 return state.copy(pointer = state.pointer + 2, output = state.output + nextOutput)
             }
         }
@@ -123,7 +130,8 @@ object IntcodeComputer {
 
         object AdjustRelativeBase : Instruction() {
             override fun execute(state: State): State {
-                val relativeBaseOffset = getValue(state.program, state.pointer + 1, state.parseMode(0))
+                val relativeBaseOffset =
+                    getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
                 return state.copy(pointer = state.pointer + 2, relativeBase = state.relativeBase + relativeBaseOffset)
             }
         }
@@ -135,23 +143,32 @@ object IntcodeComputer {
         }
     }
 
-    private fun applyOpcode(state: State, op: (Int, Int) -> Int): List<Int> {
+    private fun applyOpcode(state: State, op: (Long, Long) -> Long): Map<Long, Long> {
         val x = getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
         val y = getValue(state.program, state.pointer + 2, state.parseMode(1), state.relativeBase)
-        return state.program.updated(state.program[state.pointer + 3], op(x, y))
+        val writeAddress = getWriteAddress(state.program, state.pointer + 3, state.parseMode(2), state.relativeBase)
+        return state.program.updated(writeAddress, op(x, y))
     }
 
-    private fun applyJumpOpcode(state: State, ifTrue: Boolean): Int {
+    private fun applyJumpOpcode(state: State, ifTrue: Boolean): Long {
         val x = getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
         val y = getValue(state.program, state.pointer + 2, state.parseMode(1), state.relativeBase)
-        return if ((ifTrue && x != 0) || (!ifTrue && x == 0)) y else state.pointer + 3
+        return if ((ifTrue && x != 0L) || (!ifTrue && x == 0L)) y else state.pointer + 3
     }
 
-    private fun getValue(program: List<Int>, index: Int, parameterMode: ParameterMode, relativeBase: Int = 0): Int =
-        when (parameterMode) {
-            ParameterMode.POSITION -> program[program[index]]
-            ParameterMode.IMMEDIATE -> program[index]
-            ParameterMode.RELATIVE -> program[relativeBase + program[index]]
+    private fun getValue(program: Map<Long, Long>, index: Long, mode: ParameterMode, relativeBase: Long): Long =
+        when (mode) {
+            ParameterMode.POSITION -> program[program[index]] ?: 0L
+            ParameterMode.IMMEDIATE -> program[index] ?: 0L
+            ParameterMode.RELATIVE -> program[relativeBase + (program[index] ?: 0L)] ?: 0L
         }
+
+    private fun getWriteAddress(program: Map<Long, Long>, index: Long, mode: ParameterMode, relativeBase: Long): Long {
+        return when (mode) {
+            ParameterMode.POSITION -> program[index] ?: 0L
+            ParameterMode.IMMEDIATE -> throw IllegalArgumentException("Not allowed immediate mode for writes")
+            ParameterMode.RELATIVE -> relativeBase + (program[index] ?: 0)
+        }
+    }
 
 }

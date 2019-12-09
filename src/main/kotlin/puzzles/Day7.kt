@@ -2,23 +2,22 @@ package puzzles
 
 class Day7(rawInput: List<String>) {
 
-    private val input: List<Int> =
-        rawInput.first().split(",").map { it.toInt() }
+    private val input: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
 
-    fun part1(): Int {
-        return permute(listOf(0, 1, 2, 3, 4)).map { phases ->
+    fun part1(): Long {
+        return permute(listOf(0L, 1L, 2L, 3L, 4L)).map { phases ->
             thrusterSignal(input, phases)
         }.max() ?: 0
     }
 
-    fun part2(): Int {
-        return permute(listOf(5, 6, 7, 8, 9)).map { phases ->
-            loopThrusterSignal(List(5) { input }, phases, listOf(0, 0, 0, 0, 0))
+    fun part2(): Long {
+        return permute(listOf(5L, 6L, 7L, 8L, 9L)).map { phases ->
+            loopThrusterSignal(List(5) { input }, phases, listOf(0L, 0L, 0L, 0L, 0L))
         }.max() ?: 0
     }
 
     companion object {
-        tailrec fun thrusterSignal(program: List<Int>, phases: List<Int>, input: Int = 0): Int {
+        tailrec fun thrusterSignal(program: Map<Long, Long>, phases: List<Long>, input: Long = 0L): Long {
             return if (phases.isEmpty()) input
             else {
                 val output = IntcodeComputer.runProgram(
@@ -29,12 +28,12 @@ class Day7(rawInput: List<String>) {
         }
 
         tailrec fun loopThrusterSignal(
-            programs: List<List<Int>>,
-            phases: List<Int>,
-            pointers: List<Int>,
+            programs: List<Map<Long, Long>>,
+            phases: List<Long>,
+            pointers: List<Long>,
             iteration: Int = 0,
-            input: List<Int> = listOf(0)
-        ): Int {
+            input: List<Long> = listOf(0L)
+        ): Long {
             val amplifier = iteration % (phases.size)
             val program = programs[amplifier]
             val inputWithPhase = if (iteration < phases.size) listOf(phases[amplifier]) + input else input
