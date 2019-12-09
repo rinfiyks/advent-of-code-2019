@@ -2,19 +2,25 @@ package puzzles
 
 class Day2(rawInput: List<String>) {
 
-    private val input: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
+    private val originalInput: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
 
     fun part1(): Long {
+        val input = originalInput.toMutableMap()
+        input[1] = 12L
+        input[2] = 2L
         return IntcodeComputer.runProgram(
-            IntcodeComputer.State(input.updated(1, 12).updated(2, 2))
+            IntcodeComputer.State(input)
         ).program[0] ?: 0
     }
 
     fun part2(): Long {
         for (i in 0..99) {
             for (j in 0..99) {
+                val input = originalInput.toMutableMap()
+                input[1] = i.toLong()
+                input[2] = j.toLong()
                 val result = IntcodeComputer.runProgram(
-                    IntcodeComputer.State(input.updated(1, i.toLong()).updated(2, j.toLong()))
+                    IntcodeComputer.State(input)
                 ).program
                 if ((result[0L] ?: 0L) == 19690720L) return 100 * (result[1L] ?: 0L) + (result[2L] ?: 0)
             }

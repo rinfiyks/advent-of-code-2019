@@ -13,7 +13,7 @@ object IntcodeComputer {
     }
 
     data class State(
-        val program: Map<Long, Long>,
+        val program: MutableMap<Long, Long>,
         val input: List<Long> = listOf(0),
         val pointer: Long = 0,
         val output: List<Long> = emptyList(),
@@ -63,15 +63,15 @@ object IntcodeComputer {
 
         object Add : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram = applyOpcode(state, Long::plus)
-                return state.copy(program = updatedProgram, pointer = state.pointer + 4)
+                applyOpcode(state, Long::plus)
+                return state.copy(pointer = state.pointer + 4)
             }
         }
 
         object Times : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram = applyOpcode(state, Long::times)
-                return state.copy(program = updatedProgram, pointer = state.pointer + 4)
+                applyOpcode(state, Long::times)
+                return state.copy(pointer = state.pointer + 4)
             }
         }
 
@@ -85,8 +85,9 @@ object IntcodeComputer {
                         state.parseMode(0),
                         state.relativeBase
                     )
-                    val updatedProgram = state.program.updated(writeAddress, state.input[0])
-                    state.copy(program = updatedProgram, input = state.input.drop(1), pointer = state.pointer + 2)
+//                    val updatedProgram = state.program.updated(writeAddress, state.input[0])
+                    state.program[writeAddress] = state.input[0]
+                    state.copy(input = state.input.drop(1), pointer = state.pointer + 2)
                 }
             }
         }
@@ -114,17 +115,15 @@ object IntcodeComputer {
 
         object LessThan : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram =
-                    applyOpcode(state) { x, y -> if (x < y) 1 else 0 }
-                return state.copy(program = updatedProgram, pointer = state.pointer + 4)
+                applyOpcode(state) { x, y -> if (x < y) 1 else 0 }
+                return state.copy(pointer = state.pointer + 4)
             }
         }
 
         object Equals : Instruction() {
             override fun execute(state: State): State {
-                val updatedProgram =
-                    applyOpcode(state) { x, y -> if (x == y) 1 else 0 }
-                return state.copy(program = updatedProgram, pointer = state.pointer + 4)
+                applyOpcode(state) { x, y -> if (x == y) 1 else 0 }
+                return state.copy(pointer = state.pointer + 4)
             }
         }
 
@@ -143,11 +142,11 @@ object IntcodeComputer {
         }
     }
 
-    private fun applyOpcode(state: State, op: (Long, Long) -> Long): Map<Long, Long> {
+    private fun applyOpcode(state: State, op: (Long, Long) -> Long): Unit {
         val x = getValue(state.program, state.pointer + 1, state.parseMode(0), state.relativeBase)
         val y = getValue(state.program, state.pointer + 2, state.parseMode(1), state.relativeBase)
         val writeAddress = getWriteAddress(state.program, state.pointer + 3, state.parseMode(2), state.relativeBase)
-        return state.program.updated(writeAddress, op(x, y))
+        state.program[writeAddress] = op(x, y)
     }
 
     private fun applyJumpOpcode(state: State, ifTrue: Boolean): Long {
@@ -163,12 +162,11 @@ object IntcodeComputer {
             ParameterMode.RELATIVE -> program[relativeBase + (program[index] ?: 0L)] ?: 0L
         }
 
-    private fun getWriteAddress(program: Map<Long, Long>, index: Long, mode: ParameterMode, relativeBase: Long): Long {
-        return when (mode) {
+    private fun getWriteAddress(program: Map<Long, Long>, index: Long, mode: ParameterMode, relativeBase: Long): Long =
+        when (mode) {
             ParameterMode.POSITION -> program[index] ?: 0L
             ParameterMode.IMMEDIATE -> throw IllegalArgumentException("Not allowed immediate mode for writes")
-            ParameterMode.RELATIVE -> relativeBase + (program[index] ?: 0)
+            ParameterMode.RELATIVE -> relativeBase + (program[index] ?: 0L)
         }
-    }
 
 }

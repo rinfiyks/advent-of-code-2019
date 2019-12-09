@@ -2,17 +2,17 @@ package puzzles
 
 class Day5(rawInput: List<String>) {
 
-    private val input: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
+    private val originalInput: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
 
     fun part1(): Long {
         return IntcodeComputer.runProgram(
-            IntcodeComputer.State(input, listOf(1L))
+            IntcodeComputer.State(originalInput.toMutableMap(), listOf(1L))
         ).output.last()
     }
 
     fun part2(): Long {
         return IntcodeComputer.runProgram(
-            IntcodeComputer.State(input, listOf(5L))
+            IntcodeComputer.State(originalInput.toMutableMap(), listOf(5L))
         ).output.last()
     }
 

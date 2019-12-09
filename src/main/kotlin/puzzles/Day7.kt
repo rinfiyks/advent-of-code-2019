@@ -2,22 +2,22 @@ package puzzles
 
 class Day7(rawInput: List<String>) {
 
-    private val input: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
+    private val originalInput: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
 
     fun part1(): Long {
         return permute(listOf(0L, 1L, 2L, 3L, 4L)).map { phases ->
-            thrusterSignal(input, phases)
+            thrusterSignal(originalInput.toMutableMap(), phases)
         }.max() ?: 0
     }
 
     fun part2(): Long {
         return permute(listOf(5L, 6L, 7L, 8L, 9L)).map { phases ->
-            loopThrusterSignal(List(5) { input }, phases, listOf(0L, 0L, 0L, 0L, 0L))
+            loopThrusterSignal(List(5) { originalInput.toMutableMap() }, phases, listOf(0L, 0L, 0L, 0L, 0L))
         }.max() ?: 0
     }
 
     companion object {
-        tailrec fun thrusterSignal(program: Map<Long, Long>, phases: List<Long>, input: Long = 0L): Long {
+        tailrec fun thrusterSignal(program: MutableMap<Long, Long>, phases: List<Long>, input: Long = 0L): Long {
             return if (phases.isEmpty()) input
             else {
                 val output = IntcodeComputer.runProgram(
@@ -28,7 +28,7 @@ class Day7(rawInput: List<String>) {
         }
 
         tailrec fun loopThrusterSignal(
-            programs: List<Map<Long, Long>>,
+            programs: List<MutableMap<Long, Long>>,
             phases: List<Long>,
             pointers: List<Long>,
             iteration: Int = 0,
