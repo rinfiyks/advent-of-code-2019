@@ -11,7 +11,7 @@ internal class Day8Test {
         val height = 2
         val imageData = "0222112222120000".map { it.toString().toInt() }.chunked(width * height)
         val image = Day8.convertToImage(imageData, width, height)
-        assertThat(Day8.imageToString(image, width, height)).isEqualTo(" #\n# \n")
+        assertThat(Day8.imageToString(image, width, height)).isEqualTo(" #\n# ")
     }
 
 }

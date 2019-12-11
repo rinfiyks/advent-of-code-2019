@@ -1,7 +1,5 @@
 package puzzles
 
-import java.lang.StringBuilder
-
 class Day8(rawInput: List<String>) {
 
     private val width = 25
@@ -32,17 +30,14 @@ class Day8(rawInput: List<String>) {
         }
 
         fun imageToString(image: List<Int>, width: Int, height: Int): String {
-            val result = StringBuilder()
-            for (h in 0 until height) {
-                for (w in 0 until width) {
+            return List(height) { h ->
+                List(width) { w ->
                     when (image[w + (h * width)]) {
-                        0 -> result.append(" ")
-                        else -> result.append("#")
+                        0 -> ' '
+                        else -> '#'
                     }
-                }
-                result.append("\n")
-            }
-            return result.toString()
+                }.joinToString(separator = "")
+            }.joinToString(separator = "\n")
         }
     }
 

@@ -1,7 +1,6 @@
 package puzzles
 
 import java.lang.IllegalArgumentException
-import java.lang.StringBuilder
 
 class Day11(rawInput: List<String>) {
 
@@ -29,19 +28,19 @@ class Day11(rawInput: List<String>) {
     private val input: Map<Long, Long> = IntcodeComputer.parseInput(rawInput)
 
     fun part1(): Int {
-        val result = runRobot(
+        val finalHull = runRobot(
             IntcodeComputer.State(input.toMutableMap()),
             Robot(Pair(0, 0), Direction.UP), emptyMap()
         )
-        return result.size
+        return finalHull.size
     }
 
     fun part2(): String {
-        val result = runRobot(
+        val finalHull = runRobot(
             IntcodeComputer.State(input.toMutableMap()),
             Robot(Pair(0, 0), Direction.UP), mapOf(Pair(Pair(0, 0), 1))
         )
-        return displayHull(result)
+        return displayHull(finalHull)
     }
 
     private tailrec fun runRobot(
@@ -55,18 +54,15 @@ class Day11(rawInput: List<String>) {
             IntcodeComputer.Status.HALTED -> hull
             else -> {
                 val paintColour = programResult.output[0].toInt()
-                val turn = programResult.output[1].toInt()
                 val nextHull = hull.updated(robot.position, paintColour)
+                val turn = programResult.output[1].toInt()
                 val nextRobot = when (turn) {
                     0 -> robot.rotateLeft()
                     1 -> robot.rotateRight()
                     else -> throw IllegalArgumentException("Turn code $turn is not valid")
                 }.move()
 
-                val nextState = programResult.copy(
-                    output = emptyList(),
-                    status = IntcodeComputer.Status.RUNNING
-                )
+                val nextState = programResult.copy(output = emptyList(), status = IntcodeComputer.Status.RUNNING)
                 runRobot(nextState, nextRobot, nextHull)
             }
         }
@@ -77,23 +73,20 @@ class Day11(rawInput: List<String>) {
         val maxX = hull.keys.map { it.first }.max()!!
         val minY = hull.keys.map { it.second }.min()!!
         val maxY = hull.keys.map { it.second }.max()!!
-        val something = List(maxY - minY + 1) { column ->
+        val hullAsLists = List(maxY - minY + 1) { column ->
             List(maxX - minX + 1) { row ->
                 hull[Pair(row + minX, column + minY)] ?: 0
             }
         }
 
-        val result = StringBuilder()
-        something.reversed().forEach { row ->
-            row.forEach { pixel ->
+        return hullAsLists.reversed().map { row ->
+            row.map { pixel ->
                 when (pixel) {
-                    0 -> result.append(" ")
-                    else -> result.append("#")
+                    0 -> ' '
+                    else -> '#'
                 }
-            }
-            result.append("\n")
-        }
-        return result.toString()
+            }.joinToString(separator = "")
+        }.joinToString(separator = "\n")
     }
 }
 
