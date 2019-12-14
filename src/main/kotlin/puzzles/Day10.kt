@@ -1,5 +1,6 @@
 package puzzles
 
+import puzzles.MathUtil.gcd
 import kotlin.math.abs
 import kotlin.math.atan2
 
@@ -69,9 +70,6 @@ class Day10(rawInput: List<String>) {
             vaporise(nextAllDeltas, laser.copy(direction = nextDirection), count + 1)
         }
     }
-
-    private tailrec fun gcd(a: Int, b: Int): Int =
-        if (b == 0) a else gcd(b, a % b)
 
 }
 
