@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assertions.*
 internal class Day12Test {
 
     @Test
-    fun part1() {
+    fun testPart1() {
         val input = """
             <x=-1, y=0, z=2>
             <x=2, y=-10, z=-7>
@@ -20,7 +20,7 @@ internal class Day12Test {
     }
 
     @Test
-    fun part2() {
+    fun testPart2() {
         val input = """
             <x=-8, y=-10, z=0>
             <x=5, y=5, z=10>

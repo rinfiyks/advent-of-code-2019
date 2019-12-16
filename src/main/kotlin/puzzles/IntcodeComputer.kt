@@ -85,7 +85,6 @@ object IntcodeComputer {
                         state.parseMode(0),
                         state.relativeBase
                     )
-//                    val updatedProgram = state.program.updated(writeAddress, state.input[0])
                     state.program[writeAddress] = state.input[0]
                     state.copy(input = state.input.drop(1), pointer = state.pointer + 2)
                 }
